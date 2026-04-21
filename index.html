@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Naufal ESL Digital Tools</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <style>
+        /* Premium Apple-inspired iOS Aesthetics */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #F5F5F7; 
+            color: #1D1D1F; 
+            overflow-x: hidden; 
+        }
+        
+        /* Premium Mesh Gradient Background */
+        .bg-mesh {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;
+            background: radial-gradient(circle at 15% 50%, rgba(216, 236, 255, 0.6), transparent 25%),
+                        radial-gradient(circle at 85% 30%, rgba(240, 225, 255, 0.6), transparent 25%),
+                        radial-gradient(circle at 50% 100%, rgba(220, 255, 220, 0.4), transparent 40%);
+            background-color: #F5F5F7;
+        }
+
+        /* Glassmorphism Styles */
+        .glass {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04);
+        }
+        
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        /* Hover Animations */
+        .tool-card { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .tool-card:hover { transform: translateY(-8px) scale(1.01); box-shadow: 0 20px 40px rgba(0,0,0,0.08); }
+        
+        .btn-primary { background-color: #007AFF; color: white; transition: all 0.2s; }
+        .btn-primary:hover { background-color: #0066D6; transform: scale(1.02); }
+        .btn-secondary { background-color: rgba(0, 122, 255, 0.1); color: #007AFF; transition: all 0.2s; }
+        .btn-secondary:hover { background-color: rgba(0, 122, 255, 0.15); transform: scale(1.02); }
+
+        /* SPA Views Transition */
+        .view-section { display: none; animation: fadeIn 0.4s ease-out forwards; }
+        .view-section.active { display: block; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-blue-200 selection:text-blue-900">
+
+    <!-- Background Layer -->
+    <div class="bg-mesh"></div>
+
+    <!-- 🌐 NAVIGATION BAR -->
+    <nav class="fixed top-0 w-full z-40 glass-nav transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" onclick="navigate('home')" class="text-xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
+                <i class="ph-fill ph-student text-blue-500 text-2xl"></i> Naufal ESL
+            </a>
+            <div class="hidden md:flex gap-8 font-medium text-sm text-gray-600">
+                <a href="#" onclick="navigate('home')" class="nav-link text-blue-600 hover:text-blue-600 transition" id="nav-home">Home</a>
+                <a href="#" onclick="navigate('home'); setTimeout(() => document.getElementById('tools-grid').scrollIntoView({behavior:'smooth'}), 100)" class="hover:text-blue-600 transition">All Tools</a>
+                <a href="#" onclick="navigate('about')" class="nav-link hover:text-blue-600 transition" id="nav-about">About</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 🌐 MAIN APP WRAPPER -->
+    <main class="pt-28 pb-20">
+
+        <!-- ========================================== -->
+        <!-- VIEW 1: HOME (Hero & Showcase)             -->
+        <!-- ========================================== -->
+        <section id="view-home" class="view-section active">
+            <!-- Hero Section -->
+            <header class="px-6 max-w-4xl mx-auto text-center pt-10 pb-16">
+                <div class="inline-block mb-4 px-4 py-1.5 rounded-full glass text-sm font-semibold text-blue-600 shadow-sm border border-white">
+                    ✨ Interactive Learning Portfolio
+                </div>
+                <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-6 text-gray-900 leading-tight">
+                    Engage. Inspire. <br> <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-500">Elevate ESL.</span>
+                </h1>
+                <p class="text-xl text-gray-500 mb-10 max-w-2xl mx-auto font-light leading-relaxed">
+                    A premium collection of interactive, digital classroom tools designed to make learning English joyful and effective for primary learners.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button onclick="document.getElementById('tools-grid').scrollIntoView({behavior:'smooth'})" class="btn-primary px-8 py-3.5 rounded-full font-medium shadow-lg shadow-blue-500/30">Browse Tools</button>
+                    <button onclick="navigate('about')" class="glass px-8 py-3.5 rounded-full font-medium text-gray-700 hover:bg-white/80 transition">Meet Naufal</button>
+                </div>
+            </header>
+
+            <!-- Tools Grid Section -->
+            <div id="tools-grid" class="px-6 max-w-7xl mx-auto pt-10">
+                <h2 class="text-3xl font-bold tracking-tight text-center mb-12">Digital Classroom Tools</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="cards-container">
+                    <!-- Cards are dynamically injected via Javascript below -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 2: ABOUT PAGE                         -->
+        <!-- ========================================== -->
+        <section id="view-about" class="view-section">
+            <div class="px-6 max-w-4xl mx-auto pt-10">
+                
+                <!-- Profile Block -->
+                <div class="glass rounded-[2.5rem] p-10 md:p-16 flex flex-col md:flex-row gap-12 items-center mb-8">
+                    <img src="040130030221.jpg" alt="Naufal - ESL Educator" class="w-48 h-48 rounded-full object-cover shrink-0 shadow-xl shadow-blue-500/20 border-4 border-white">
+                    <div>
+                        <h1 class="text-4xl font-bold mb-4">Hi, I'm Naufal.</h1>
+                        <p class="text-xl text-gray-500 mb-6 font-light leading-relaxed">
+                            I am an ESL teacher trainee and educator passionate about merging pedagogy with modern web technology. My goal is to build tools that make English language acquisition invisible behind the joy of play.
+                        </p>
+                        <div class="flex gap-4">
+                            <div class="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl font-medium text-sm">ESL Educator</div>
+                            <div class="bg-purple-50 text-purple-600 px-4 py-2 rounded-xl font-medium text-sm">EdTech Creator</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Philosophy & Purpose -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="glass rounded-[2rem] p-10">
+                        <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mb-6">
+                            <i class="ph-fill ph-lightbulb text-2xl text-orange-500"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">Teaching Philosophy</h3>
+                        <p class="text-gray-600 leading-relaxed">
+                            I believe in <strong>Interactive Learning</strong>. Language isn't just memorized; it is experienced. My classroom approach prioritizes high student engagement through gamification, TPR (Total Physical Response), and low-anxiety environments where primary learners feel safe making mistakes and celebrating successes.
+                        </p>
+                    </div>
+                    <div class="glass rounded-[2rem] p-10">
+                        <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mb-6">
+                            <i class="ph-fill ph-code text-2xl text-green-500"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-4">Purpose of this Portfolio</h3>
+                        <p class="text-gray-600 leading-relaxed">
+                            This platform centralizes my custom-built digital tools. Unlike static worksheets, these applications leverage AI, 3D graphics, and speech recognition to create <strong>practical classroom applications</strong> that teachers can project on a smartboard to instantly captivate their students.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 3: TOOL DETAILS                       -->
+        <!-- ========================================== -->
+        <section id="view-details" class="view-section">
+            <div class="px-6 max-w-5xl mx-auto pt-4">
+                
+                <button onclick="navigate('home')" class="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 font-medium mb-6 transition">
+                    <i class="ph-bold ph-arrow-left"></i> Back to Portfolio
+                </button>
+                
+                <div class="glass rounded-[2.5rem] p-10 md:p-14 mb-8">
+                    <!-- Details Header -->
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 border-b border-gray-200/50 pb-10">
+                        <div>
+                            <div class="flex items-center gap-3 mb-3">
+                                <span id="detail-tag" class="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider"></span>
+                                <span class="text-gray-400 text-sm"><i class="ph-fill ph-user"></i> Author: Naufal</span>
+                            </div>
+                            <h1 id="detail-title" class="text-4xl md:text-5xl font-bold tracking-tight"></h1>
+                        </div>
+                        <button id="detail-launch-btn" class="btn-primary px-8 py-4 rounded-full font-medium text-lg shadow-lg shadow-blue-500/30 whitespace-nowrap flex items-center gap-2">
+                            <i class="ph-fill ph-rocket-launch text-xl"></i> Launch Tool
+                        </button>
+                    </div>
+
+                    <!-- Details Content -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                        <div class="space-y-8">
+                            <div>
+                                <h2 class="text-xl font-bold mb-3 flex items-center gap-2 text-gray-800"><i class="ph-fill ph-book-open text-blue-500"></i> Overview</h2>
+                                <p id="detail-overview" class="text-gray-600 leading-relaxed"></p>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold mb-3 flex items-center gap-2 text-gray-800"><i class="ph-fill ph-target text-red-500"></i> Learning Objectives</h2>
+                                <ul id="detail-objectives" class="list-disc list-inside text-gray-600 space-y-2"></ul>
+                            </div>
+                        </div>
+                        <div class="space-y-8">
+                            <div>
+                                <h2 class="text-xl font-bold mb-3 flex items-center gap-2 text-gray-800"><i class="ph-fill ph-gear text-gray-500"></i> Key Features</h2>
+                                <ul id="detail-features" class="space-y-3"></ul>
+                            </div>
+                            <div class="bg-gray-50/50 p-6 rounded-2xl border border-gray-200/50">
+                                <h2 class="text-lg font-bold mb-2 flex items-center gap-2 text-gray-800"><i class="ph-fill ph-chalkboard-teacher"></i> Classroom Activity</h2>
+                                <p id="detail-activity" class="text-gray-600 text-sm leading-relaxed"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 🌐 FOOTER -->
+    <footer class="py-8 text-center text-gray-500 text-sm border-t border-gray-200/50">
+        <p>&copy; 2026 Naufal ESL Digital Tools. Designed for education.</p>
+    </footer>
+
+    <!-- ========================================== -->
+    <!-- PORTFOLIO LOGIC (ROUTING & DATA)           -->
+    <!-- ========================================== -->
+    <script>
+        // Data Configuration for your 6 tools (Paths updated for your GitHub /tools/ folder)
+        const toolsData = [
+            {
+                id: 'tool1',
+                title: 'House Explorer',
+                filename: 'tools/guess-where-am-i-comprehension.html',
+                icon: 'ph-house',
+                color: 'blue',
+                tag: 'Vocabulary',
+                shortDesc: 'Interactive matching and guessing game associating daily routines with rooms in a house.',
+                overview: 'An interactive guessing and matching game designed to help young learners associate daily routines (e.g., brushing teeth, sleeping) with specific rooms in a house. It bridges the gap between nouns and action verbs.',
+                objectives: [
+                    'Identify rooms in a house.',
+                    'Match common action verbs to appropriate locations.',
+                    'Read and comprehend short, descriptive sentences.'
+                ],
+                features: [
+                    '<strong>Dual Modes:</strong> "Matching" for vocabulary building and "Guessing" for reading comprehension.',
+                    '<strong>Visual Flashcards:</strong> Bright colors and emojis support visual learners.',
+                    '<strong>Instant Feedback:</strong> Confetti celebrations and shake animations guide learners.'
+                ],
+                activity: '<strong>Team Relay:</strong> Project the game on the smartboard. Divide the class into two teams. Read a sentence aloud ("I am brushing my teeth"). One student from the active team must run to the board and tap the correct room. Award points for speed and accuracy.'
+            },
+            {
+                id: 'tool2',
+                title: 'Action Master',
+                filename: 'tools/verb-ing.html',
+                icon: 'ph-person-simple-run',
+                color: 'purple',
+                tag: 'Grammar',
+                shortDesc: 'Dynamic grammar tool visually breaking down Present Continuous with drag-and-drop games.',
+                overview: 'A dynamic, step-by-step grammar tool that visually breaks down the Present Continuous tense. It transitions smoothly from explicit teacher instruction to interactive student practice games.',
+                objectives: [
+                    'Understand the formula: Subject + "To Be" + Verb-ing.',
+                    'Identify grammatical errors in present continuous sentences.',
+                    'Construct accurate sentences using digital manipulatives.'
+                ],
+                features: [
+                    '<strong>Teacher Slides:</strong> Guided visual explanations with text-to-speech audio.',
+                    '<strong>Sentence Builder:</strong> Drag-and-drop mechanics to piece together sentence blocks.',
+                    '<strong>Mini-Games:</strong> Includes Error Correction and a Speed Round.'
+                ],
+                activity: '<strong>Grammar Detective:</strong> Run through the "Learn" mode together. Then, switch to "Play". Call up "Grammar Detectives" (students) to the board to fix the bug in the Error Correction game. If they fix it, the class performs the action physically.'
+            },
+            {
+                id: 'tool3',
+                title: 'Feelings Valley',
+                filename: 'tools/feelings-valley.html',
+                icon: 'ph-tree-evergreen',
+                color: 'green',
+                tag: 'Integrated Skills',
+                shortDesc: 'Multiplayer digital board game testing integrated skills on emotions.',
+                overview: 'A cozy, multiplayer digital board game that consolidates all four language skills. Teams navigate a farm-themed board, completing randomized tasks about emotions to earn stars from the teacher.',
+                objectives: [
+                    'Express complex emotions verbally and in writing.',
+                    'Listen to AI-generated scenarios and deduce feelings.',
+                    'Collaborate effectively in group problem-solving.'
+                ],
+                features: [
+                    '<strong>4-Team Multiplayer:</strong> Built-in turn management and student name rotation.',
+                    '<strong>Random Events:</strong> Unpredictable board elements keep engagement high.',
+                    '<strong>Teacher Grading Panel:</strong> Award stars in real-time for effort, accuracy, and teamwork.'
+                ],
+                activity: '<strong>Friday Farm Day:</strong> Use this as an end-of-week consolidation game. Groups physically huddle to answer their randomized card. The teacher acts as the "Farmer," grading their performance live on the board.'
+            },
+            {
+                id: 'tool4',
+                title: '3D Space Explorer',
+                filename: 'tools/preposition.html',
+                icon: 'ph-cube',
+                color: 'orange',
+                tag: 'Speaking',
+                shortDesc: 'Immersive 3D environment where students navigate spatial relationships to locate hidden objects.',
+                overview: 'A fully immersive 3D environment rendered in the browser. It visually concretizes spatial relationships (prepositions) by allowing students to orbit a camera and locate hidden objects in 3D space.',
+                objectives: [
+                    'Accurately use prepositions of place (on, under, next to, above).',
+                    'Formulate complete answers to "Where is the...?" questions.',
+                    'Develop spatial awareness linked to English vocabulary.'
+                ],
+                features: [
+                    '<strong>True 3D Rendering:</strong> Click and drag to orbit around a desk, chair, or box.',
+                    '<strong>Magic Move:</strong> Randomizes the object\'s position to create infinite practice scenarios.',
+                    '<strong>Visual Feedback:</strong> Bright colors and 3D shapes hold attention.'
+                ],
+                activity: '<strong>Hide & Speak:</strong> Project the 3D scene. Hit "Magic Move". Have Student A ask the class, "Where is the Apple?". Student B drags the camera to find it and shouts the answer using a full sentence. Verify with "Show Answer".'
+            },
+            {
+                id: 'tool5',
+                title: 'Voice Detective',
+                filename: 'tools/guess-where-am-i-speaking.html',
+                icon: 'ph-microphone-stage',
+                color: 'red',
+                tag: 'Pronunciation',
+                shortDesc: 'AI-powered speaking practice tool with real-time speech recognition and feedback.',
+                overview: 'An AI-powered speaking practice tool that listens to students\' pronunciation and provides contextual, conversational feedback. It transforms standard Q&A into a highly interactive dialogue.',
+                objectives: [
+                    'Improve clear articulation and pronunciation.',
+                    'Respond to prompts using complete, spoken sentences.',
+                    'Overcome speaking anxiety through interactions with a non-judgmental AI.'
+                ],
+                features: [
+                    '<strong>Real-time Speech Recognition:</strong> Live transcription as the student speaks.',
+                    '<strong>AI Generative Feedback:</strong> Evaluates answers conceptually, rejecting wrong answers gently.',
+                    '<strong>Word Bank Helper:</strong> Expandable vocabulary list to scaffold lower-proficiency learners.'
+                ],
+                activity: '<strong>Microphone Relay:</strong> Set up a laptop at the front. Students line up. When it\'s their turn, they read the prompt, click the mic, and speak their answer clearly to beat the AI. High engagement and perfect for checking pronunciation.'
+            },
+            {
+                id: 'tool6',
+                title: 'Face Fun AI',
+                filename: 'tools/face-fun.html',
+                icon: 'ph-smiley-wink',
+                color: 'pink',
+                tag: 'TPR / Vocab',
+                shortDesc: 'Highly engaging facial recognition game challenging students to mimic target emotions.',
+                overview: 'An AI-driven facial recognition game that tests students\' understanding of emotion vocabulary by requiring them to physically mimic the target emotion using the device\'s webcam.',
+                objectives: [
+                    'Recognize and recall vocabulary related to emotions.',
+                    'Demonstrate understanding through Total Physical Response (TPR).',
+                    'Build confidence through gamified play.'
+                ],
+                features: [
+                    '<strong>Real-time Face Tracking:</strong> Utilizes face-api.js to detect user expressions live.',
+                    '<strong>Emotion Detection:</strong> Validates if the user\'s face matches words like "Happy" or "Angry".',
+                    '<strong>Confetti Rewards:</strong> Instant visual and auditory celebrations for correct faces.'
+                ],
+                activity: '<strong>Emotion Charades:</strong> A student comes to the board facing the class (camera pointing at them). The class shouts the emotion shown on screen, and the student must make the correct face to score points for the class before the timer runs out.'
+            }
+        ];
+
+        // Theme colors matching Tailwind classes
+        const colors = {
+            blue: { bg: 'bg-blue-100', text: 'text-blue-500', tagBg: 'bg-blue-100', tagText: 'text-blue-600' },
+            purple: { bg: 'bg-purple-100', text: 'text-purple-500', tagBg: 'bg-purple-100', tagText: 'text-purple-600' },
+            green: { bg: 'bg-green-100', text: 'text-green-500', tagBg: 'bg-green-100', tagText: 'text-green-700' },
+            orange: { bg: 'bg-orange-100', text: 'text-orange-500', tagBg: 'bg-orange-100', tagText: 'text-orange-600' },
+            red: { bg: 'bg-red-100', text: 'text-red-500', tagBg: 'bg-red-100', tagText: 'text-red-600' },
+            pink: { bg: 'bg-pink-100', text: 'text-pink-500', tagBg: 'bg-pink-100', tagText: 'text-pink-600' }
+        };
+
+        // Render Cards dynamically into the DOM
+        function renderCards() {
+            const container = document.getElementById('cards-container');
+            let html = '';
+            toolsData.forEach(tool => {
+                const c = colors[tool.color];
+                html += `
+                <div class="glass rounded-[2rem] p-8 tool-card flex flex-col h-full">
+                    <div class="w-14 h-14 rounded-2xl ${c.bg} flex items-center justify-center mb-6">
+                        <i class="ph-fill ${tool.icon} text-3xl ${c.text}"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2">${tool.title}</h3>
+                    <p class="text-gray-500 mb-6 flex-grow">${tool.shortDesc}</p>
+                    <div class="flex gap-3 mt-auto">
+                        <button onclick="viewDetails('${tool.id}')" class="btn-secondary px-5 py-2.5 rounded-full font-medium flex-1 text-center text-sm">View Details</button>
+                        <button onclick="launchTool('${tool.id}')" class="btn-primary px-5 py-2.5 rounded-full font-medium flex-1 text-center text-sm">Open Tool</button>
+                    </div>
+                </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // SPA Navigation logic (Changes active views without refreshing the page)
+        function navigate(viewId) {
+            // Hide all views
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            // Show target view
+            document.getElementById('view-' + viewId).classList.add('active');
+            
+            // Highlight nav links
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('text-blue-600'));
+            if(document.getElementById('nav-' + viewId)) {
+                document.getElementById('nav-' + viewId).classList.add('text-blue-600');
+            }
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Fills the details page with the correct tool data
+        function viewDetails(toolId) {
+            const tool = toolsData.find(t => t.id === toolId);
+            if(!tool) return;
+            
+            const c = colors[tool.color];
+            
+            document.getElementById('detail-title').innerText = tool.title;
+            document.getElementById('detail-overview').innerText = tool.overview;
+            document.getElementById('detail-activity').innerHTML = tool.activity;
+            
+            const tag = document.getElementById('detail-tag');
+            tag.innerText = tool.tag;
+            tag.className = `px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider ${c.tagBg} ${c.tagText}`;
+            
+            document.getElementById('detail-objectives').innerHTML = tool.objectives.map(o => `<li>${o}</li>`).join('');
+            document.getElementById('detail-features').innerHTML = tool.features.map(f => `
+                <li class="flex items-start gap-3">
+                    <i class="ph-bold ph-check text-green-500 mt-1"></i> <span class="text-gray-600">${f}</span>
+                </li>`).join('');
+            
+            document.getElementById('detail-launch-btn').onclick = () => launchTool(tool.id);
+            
+            // Go to details view
+            navigate('details');
+        }
+
+        // Launch Game (Opens GitHub hosted page in a new tab)
+        function launchTool(toolId) {
+            const tool = toolsData.find(t => t.id === toolId);
+            if(!tool) return;
+            
+            // Opens the correct external file from your /tools/ folder on GitHub
+            window.open(tool.filename, '_blank');
+        }
+
+        // Initialize App on load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderCards();
+        });
+    </script>
+</body>
+</html>
