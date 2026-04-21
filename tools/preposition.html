@@ -201,9 +201,16 @@
             return new Blob([buffer], { type: 'audio/wav' });
         }
 
-        async function speakText(text, iconId, loaderId) {
-            const btnIcon = document.getElementById(iconId);
-            const btnLoader = document.getElementById(loaderId);
+        async function speakText(text) {
+    // Call your OWN Vercel backend instead of Google
+    const response = await fetch(`/api/tts?text=${encodeURIComponent(text)}`);
+    const inlineData = await response.json();
+    
+    // Play the audio as you did before
+    const audioUrl = `data:${inlineData.mimeType};base64,${inlineData.data}`;
+    const audio = new Audio(audioUrl);
+    audio.play();
+}
             
             if(currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
             btnIcon.style.display = 'none'; btnLoader.style.display = 'block';
