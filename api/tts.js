@@ -1,26 +1,61 @@
 export default async function handler(req, res) {
-    const { text } = req.query;
-    const apiKey = process.env.GEMINI_API_KEY; // Hidden in Vercel settings
+    if (req.method !== "POST") {
+        return res.status(405).json({ error: "Method not allowed" });
+    }
+
+    const { text } = req.body;
+
+    if (!text) {
+        return res.status(400).json({ error: "Text is required" });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-    
+
     try {
         const response = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({
                 contents: [{ parts: [{ text }] }],
                 generationConfig: {
                     responseModalities: ["AUDIO"],
-                    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } } }
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: {
+                                voiceName: "Aoede"
+                            }
+                        }
+                    }
                 }
             })
         });
 
         const data = await response.json();
-        // Send the raw audio data back to your frontend
-        res.status(200).json(data.candidates[0].content.parts[0].inlineData);
+
+        // Debug log (VERY IMPORTANT during testing)
+        console.log(JSON.stringify(data, null, 2));
+
+        const audioData =
+            data?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+
+        if (!audioData) {
+            return res.status(500).json({
+                error: "No audio returned from Gemini",
+                raw: data
+            });
+        }
+
+        res.status(200).json(audioData);
+
     } catch (error) {
-        res.status(500).json({ error: "Failed to generate audio" });
+        console.error(error);
+        res.status(500).json({
+            error: "Failed to generate audio",
+            details: error.message
+        });
     }
 }
