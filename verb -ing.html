@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verb Power: Present Continuous</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;700;800&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            overscroll-behavior: none;
+        }
+
+        h1, h2, h3, .brand-font {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        /* Syntax Highlighting */
+        .hl-sub { color: #db2777; font-weight: 800; } 
+        .hl-be { color: #2563eb; font-weight: 800; } 
+        .hl-ing { color: #16a34a; font-weight: 800; } 
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .slide-in-right { animation: slideInRight 0.4s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .pop-correct { animation: popCorrect 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .shake-error { animation: shakeError 0.4s ease-in-out; }
+        
+        @keyframes popCorrect {
+            0% { transform: scale(1); box-shadow: 0 0 0 rgba(34, 197, 94, 0); }
+            50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(34, 197, 94, 0.6); }
+            100% { transform: scale(1); box-shadow: 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        @keyframes shakeError {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+
+        /* Interactive Elements */
+        .btn-hover { transition: all 0.2s; cursor: pointer; }
+        .btn-hover:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .btn-hover:active { transform: translateY(1px); }
+
+        .drop-zone {
+            min-height: 80px;
+            border: 4px dashed #cbd5e1;
+            background: #f1f5f9;
+            transition: all 0.2s;
+        }
+        .drop-zone.correct-glow { border-color: #22c55e; background-color: #f0fdf4; box-shadow: 0 0 15px rgba(34, 197, 94, 0.3); }
+        .drop-zone.error-glow { border-color: #ef4444; background-color: #fef2f2; }
+        .drop-zone.selected-target { border-color: #3b82f6; background-color: #eff6ff; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+
+        .word-chip {
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+        }
+        .word-chip.selected {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 4px #3b82f6;
+            z-index: 10;
+        }
+
+        .timer-bar {
+            height: 8px;
+            background: #ef4444;
+            transition: width 1s linear;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-2 md:p-6">
+
+    <!-- Top Navigation -->
+    <nav class="w-full max-w-5xl bg-white rounded-3xl shadow-sm p-3 mb-6 flex gap-4 items-center justify-between border-2 border-gray-100 z-50 relative">
+        <div class="flex gap-2 w-full md:w-auto">
+            <button onclick="switchAppMode('learn')" id="nav-learn" class="flex-1 md:w-48 py-3 px-6 rounded-2xl font-bold text-lg btn-hover bg-indigo-600 text-white shadow-md">
+                👨‍🏫 Learn
+            </button>
+            <button onclick="switchAppMode('play')" id="nav-play" class="flex-1 md:w-48 py-3 px-6 rounded-2xl font-bold text-lg btn-hover bg-gray-100 text-gray-500">
+                🎮 Play Games
+            </button>
+        </div>
+        <div class="hidden md:flex items-center gap-3 bg-yellow-100 px-6 py-2 rounded-2xl border-2 border-yellow-300">
+            <span id="display-pupil-name" class="font-bold text-yellow-700 mr-2 text-xl brand-font"></span>
+            <i class="fa-solid fa-star text-yellow-500 text-2xl"></i>
+            <span id="score-display" class="font-black text-2xl text-yellow-600 brand-font">0</span>
+        </div>
+    </nav>
+
+    <!-- Main App Container -->
+    <main class="w-full max-w-5xl bg-white rounded-[2rem] shadow-2xl overflow-hidden border-4 border-white relative min-h-[650px] flex flex-col">
+        
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center space-y-6">
+            <div class="animate-spin rounded-full h-20 w-20 border-b-8 border-indigo-600"></div>
+            <h2 class="text-3xl brand-font text-indigo-600 animate-pulse">Painting Magic Pictures...</h2>
+            <p class="text-gray-500 font-bold">Getting the classroom ready!</p>
+        </div>
+
+        <!-- ==========================================
+             PART 1: TEACHER SLIDES (LEARN MODE)
+             ========================================== -->
+        <div id="mode-learn" class="w-full h-full p-6 md:p-10 hidden flex-col flex-1">
+            
+            <div id="learn-slides-container" class="flex-1 relative">
+                <!-- Slide 1: Visual Hook -->
+                <div id="learn-slide-1" class="learn-slide hidden fade-in h-full flex flex-col items-center justify-center">
+                    <h2 class="text-4xl font-black text-center text-indigo-600 mb-8 brand-font">Look & Listen 👂</h2>
+                    <div class="grid grid-cols-2 gap-6 w-full max-w-2xl">
+                        <div class="bg-indigo-50 p-4 rounded-3xl cursor-pointer btn-hover border-4 border-indigo-100 text-center" onclick="speak('eating')">
+                            <img id="img-0" src="" class="w-full h-40 object-cover rounded-2xl mb-4 shadow-sm">
+                            <p class="text-3xl font-bold text-indigo-900">Tap to hear</p>
+                        </div>
+                        <div class="bg-pink-50 p-4 rounded-3xl cursor-pointer btn-hover border-4 border-pink-100 text-center" onclick="speak('reading')">
+                            <img id="img-1" src="" class="w-full h-40 object-cover rounded-2xl mb-4 shadow-sm">
+                            <p class="text-3xl font-bold text-pink-900">Tap to hear</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 2: Adding the Person -->
+                <div id="learn-slide-2" class="learn-slide hidden fade-in h-full flex flex-col items-center justify-center">
+                    <h2 class="text-4xl font-black text-center text-indigo-600 mb-8 brand-font">Who is doing it? 🤔</h2>
+                    <div class="flex items-center gap-8 bg-gray-50 p-8 rounded-[2rem] border-4 border-gray-200 shadow-sm w-full max-w-3xl">
+                        <img id="img-0-s2" src="" class="w-48 h-48 rounded-2xl object-cover shadow-md">
+                        <div class="flex-1 space-y-6">
+                            <div class="flex items-center gap-4">
+                                <span class="bg-pink-100 text-pink-700 px-6 py-3 rounded-2xl text-3xl font-black">He</span>
+                                <span class="text-2xl font-bold text-gray-500">(The boy)</span>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="bg-green-100 text-green-700 px-6 py-3 rounded-2xl text-3xl font-black">eating</span>
+                                <span class="text-2xl font-bold text-gray-500">(The action)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 3: The Missing Link (is) -->
+                <div id="learn-slide-3" class="learn-slide hidden fade-in h-full flex flex-col items-center justify-center">
+                    <h2 class="text-4xl font-black text-center text-indigo-600 mb-8 brand-font">The Magic Glue! ✨</h2>
+                    <p class="text-2xl font-bold text-gray-600 text-center mb-8">We need a tiny word to glue them together.</p>
+                    <div class="bg-white border-4 border-blue-200 shadow-xl rounded-[2rem] p-8 w-full max-w-4xl text-center">
+                        <div class="flex justify-center items-center gap-6 text-5xl font-black mb-8">
+                            <span class="text-pink-500">He</span>
+                            <span class="text-gray-300">+</span>
+                            <span class="bg-blue-500 text-white px-8 py-4 rounded-2xl shadow-lg pop-correct border-4 border-blue-600">is</span>
+                            <span class="text-gray-300">+</span>
+                            <span class="text-green-500">eating</span>
+                        </div>
+                        <p class="text-3xl font-bold text-blue-600 bg-blue-50 py-4 rounded-2xl border-2 border-blue-100">"He <span class="underline">is</span> eating."</p>
+                    </div>
+                </div>
+
+                <!-- Slide 4: Pattern Noticing -->
+                <div id="learn-slide-4" class="learn-slide hidden fade-in h-full flex flex-col items-center justify-center">
+                    <h2 class="text-4xl font-black text-center text-indigo-600 mb-8 brand-font">Grammar Detective 🕵️</h2>
+                    <div class="w-full max-w-3xl space-y-8">
+                        <div class="bg-gray-50 rounded-[2rem] p-8 border-4 border-gray-200 text-center text-4xl md:text-5xl font-black space-y-6">
+                            <p>He <span class="hl-be">is</span> runn<span class="hl-ing">ing</span>.</p>
+                            <p>She <span class="hl-be">is</span> cook<span class="hl-ing">ing</span>.</p>
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-blue-50 border-4 border-blue-200 rounded-3xl p-6 shadow-sm text-center">
+                                <p class="text-xl font-bold text-blue-800 mb-2">Question 1:</p>
+                                <p class="text-2xl font-black text-blue-900">What word is the same?</p>
+                                <button class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-full font-bold btn-hover" onclick="this.innerText='is ✅'; this.classList.add('bg-green-500')">Reveal</button>
+                            </div>
+                            <div class="bg-green-50 border-4 border-green-200 rounded-3xl p-6 shadow-sm text-center">
+                                <p class="text-xl font-bold text-green-800 mb-2">Question 2:</p>
+                                <p class="text-2xl font-black text-green-900">What 3 letters are at the end?</p>
+                                <button class="mt-4 px-6 py-2 bg-green-600 text-white rounded-full font-bold btn-hover" onclick="this.innerText='-ing ✅'; this.classList.add('bg-blue-500')">Reveal</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 5: The Rule -->
+                <div id="learn-slide-5" class="learn-slide hidden fade-in h-full flex flex-col items-center justify-center">
+                    <h2 class="text-4xl font-black text-center text-indigo-600 mb-8 brand-font">The Golden Rule 🌟</h2>
+                    <div class="bg-indigo-50 border-4 border-indigo-200 rounded-[2rem] p-8 w-full max-w-3xl mb-12 text-center shadow-md">
+                        <p class="text-4xl font-black text-indigo-800">
+                            <span class="hl-sub">Person</span> + <span class="hl-be">is/am/are</span> + <span class="hl-ing">Action-ing</span>
+                        </p>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-8 w-full max-w-3xl">
+                        <div class="bg-white border-4 border-gray-200 rounded-3xl p-6 text-center shadow-sm cursor-pointer btn-hover" onclick="speak('She is reading')">
+                            <p class="text-3xl font-bold mb-4">She <span class="hl-be">is</span> read<span class="hl-ing">ing</span>.</p>
+                            <div class="bg-green-100 text-green-700 font-black text-2xl py-2 rounded-xl">✅ Yes!</div>
+                        </div>
+                        <div class="bg-white border-4 border-gray-200 rounded-3xl p-6 text-center shadow-sm">
+                            <p class="text-3xl font-bold mb-4 text-gray-400">She <span class="line-through">is</span> read.</p>
+                            <div class="bg-red-100 text-red-700 font-black text-2xl py-2 rounded-xl">❌ Missing 'is' & 'ing'</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 6: Mini Check -->
+                <div id="learn-slide-6" class="learn-slide hidden fade-in h-full flex flex-col items-center justify-center">
+                    <h2 class="text-4xl font-black text-center text-indigo-600 mb-8 brand-font">Tap the Correct Sentence!</h2>
+                    <div class="w-full max-w-2xl space-y-6">
+                        <button onclick="checkQuick(this, false)" class="w-full p-6 bg-white border-4 border-gray-200 rounded-3xl text-3xl font-bold text-gray-600 hover:border-indigo-400 transition shadow-sm text-left">He eating.</button>
+                        <button onclick="checkQuick(this, true)" class="w-full p-6 bg-white border-4 border-gray-200 rounded-3xl text-3xl font-bold text-gray-600 hover:border-indigo-400 transition shadow-sm text-left">He is eating.</button>
+                        <button onclick="checkQuick(this, false)" class="w-full p-6 bg-white border-4 border-gray-200 rounded-3xl text-3xl font-bold text-gray-600 hover:border-indigo-400 transition shadow-sm text-left">He is eat.</button>
+                    </div>
+                </div>
+
+                <!-- Slide 7: TPR -->
+                <div id="learn-slide-7" class="learn-slide hidden fade-in h-full flex flex-col items-center justify-center">
+                    <h2 class="text-4xl font-black text-center text-indigo-600 mb-4 brand-font">Stand Up & Act! 🏃‍♂️</h2>
+                    <p class="text-2xl font-bold text-gray-500 text-center mb-8">Do the action and say the sentence loudly!</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
+                        <div class="bg-yellow-50 border-4 border-yellow-200 rounded-3xl p-8 text-center shadow-md btn-hover">
+                            <div class="text-7xl mb-4">🍔</div>
+                            <p class="text-3xl font-black text-yellow-700">"I am eating!"</p>
+                        </div>
+                        <div class="bg-blue-50 border-4 border-blue-200 rounded-3xl p-8 text-center shadow-md btn-hover">
+                            <div class="text-7xl mb-4">🏃‍♀️</div>
+                            <p class="text-3xl font-black text-blue-700">"I am running!"</p>
+                        </div>
+                        <div class="bg-pink-50 border-4 border-pink-200 rounded-3xl p-8 text-center shadow-md btn-hover">
+                            <div class="text-7xl mb-4">📖</div>
+                            <p class="text-3xl font-black text-pink-700">"I am reading!"</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div> <!-- End of slides container -->
+
+            <!-- Learn Nav Controls (Fixed at bottom of Learn Mode) -->
+            <div class="flex justify-between items-center mt-6 pt-6 border-t-4 border-gray-100 w-full shrink-0">
+                <button onclick="prevSlide()" class="px-6 py-4 bg-gray-200 text-gray-700 rounded-2xl font-bold text-xl hover:bg-gray-300 transition shadow-sm"><i class="fa-solid fa-arrow-left mr-2"></i> Back</button>
+                <span id="slide-counter" class="font-black text-gray-400 text-xl bg-gray-50 px-6 py-2 rounded-full border-2 border-gray-200">Slide 1 / 7</span>
+                <button onclick="nextSlide()" id="learn-next-btn" class="px-6 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-xl shadow-lg hover:bg-indigo-700 transition">Next <i class="fa-solid fa-arrow-right ml-2"></i></button>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             PART 2: STUDENT PRACTICE (PLAY MODE)
+             ========================================== -->
+        <div id="mode-play" class="w-full h-full p-6 md:p-10 hidden flex-col flex-1">
+            
+            <div class="flex justify-between items-center mb-6 shrink-0">
+                <h2 id="game-title" class="text-3xl font-black text-indigo-600 brand-font">Practice Games</h2>
+                <div id="progress-container" class="w-1/3 h-4 bg-gray-100 rounded-full overflow-hidden hidden">
+                    <div id="game-progress" class="h-full bg-green-500 transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div id="game-container" class="flex-1 relative flex flex-col justify-center">
+                
+                <!-- Game 0: Name Entry -->
+                <div id="game-0" class="game-slide hidden fade-in h-full flex flex-col items-center justify-center">
+                    <div class="text-7xl mb-6 animate-bounce">🎮</div>
+                    <h2 class="text-5xl font-black text-indigo-600 mb-6 brand-font text-center">Ready to Play?</h2>
+                    <input type="text" id="pupil-name-input" class="text-center p-5 text-3xl font-bold border-4 border-gray-200 rounded-2xl focus:border-indigo-500 outline-none w-full max-w-md mb-8 shadow-inner" placeholder="Type your name...">
+                    <button onclick="startPractice()" class="px-12 py-5 bg-green-500 text-white rounded-full font-black text-3xl shadow-xl hover:bg-green-600 transition btn-hover">Start Games! <i class="fa-solid fa-play ml-2"></i></button>
+                </div>
+
+                <!-- Game 1: MCQ -->
+                <div id="game-1" class="game-slide hidden slide-in-right">
+                    <h3 class="text-3xl font-black text-center mb-8 text-gray-700">1. Look and Choose</h3>
+                    <div class="flex flex-col md:flex-row gap-8 items-center justify-center">
+                        <img id="g1-img" src="" class="w-64 h-64 object-cover rounded-3xl border-4 border-indigo-100 shadow-xl">
+                        <div class="flex flex-col gap-4 w-full max-w-md">
+                            <button onclick="checkGameMCQ(this, false)" class="p-6 bg-white border-4 border-gray-200 rounded-2xl text-3xl font-bold btn-hover text-left shadow-sm text-gray-700">He eating</button>
+                            <button onclick="checkGameMCQ(this, true)" class="p-6 bg-white border-4 border-gray-200 rounded-2xl text-3xl font-bold btn-hover text-left shadow-sm text-gray-700">He is eating</button>
+                            <button onclick="checkGameMCQ(this, false)" class="p-6 bg-white border-4 border-gray-200 rounded-2xl text-3xl font-bold btn-hover text-left shadow-sm text-gray-700">He is eat</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Game 2: Drag & Drop Builder -->
+                <div id="game-2" class="game-slide hidden slide-in-right">
+                    <h3 class="text-3xl font-black text-center mb-8 text-gray-700">2. Sentence Builder</h3>
+                    <div class="max-w-3xl mx-auto space-y-8">
+                        <div class="flex justify-center"><img id="g2-img" src="" class="w-48 h-48 object-cover rounded-[2rem] shadow-lg border-4 border-indigo-100"></div>
+                        <div class="bg-gray-50 p-6 rounded-3xl border-4 border-gray-200 shadow-inner">
+                            <p class="text-center font-bold text-gray-500 mb-4 text-xl">Tap words to build the sentence:</p>
+                            <div id="g2-drop" class="drop-zone rounded-2xl flex flex-wrap items-center justify-center gap-3 p-4"></div>
+                        </div>
+                        <div id="g2-bank" class="flex flex-wrap justify-center gap-4">
+                            <!-- Chips injected via JS -->
+                        </div>
+                        <div class="text-center mt-8">
+                            <button onclick="checkGameBuilder('He is running')" class="px-10 py-4 bg-indigo-600 text-white rounded-full font-black text-2xl shadow-lg hover:bg-indigo-700 transition btn-hover">Check Answer</button>
+                            <button onclick="resetGameBuilder()" class="px-6 py-4 bg-gray-200 text-gray-600 rounded-full font-black ml-4 hover:bg-gray-300 btn-hover"><i class="fa-solid fa-rotate-right"></i> Clear</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Game 3: Match Action -->
+                <div id="game-3" class="game-slide hidden slide-in-right">
+                    <h3 class="text-3xl font-black text-center mb-8 text-gray-700">3. Match the Action</h3>
+                    <p class="text-center text-gray-500 mb-8 font-bold text-xl">Tap a sentence, then tap the empty box next to the right picture.</p>
+                    
+                    <div class="grid md:grid-cols-2 gap-10 max-w-4xl mx-auto">
+                        <!-- Targets -->
+                        <div class="space-y-8">
+                            <div class="flex items-center gap-4 bg-white p-3 rounded-3xl shadow-sm border-4 border-gray-100">
+                                <img id="g3-img1" src="" class="w-28 h-28 rounded-2xl object-cover">
+                                <div id="g3-target1" class="flex-1 drop-zone rounded-2xl cursor-pointer flex items-center justify-center" onclick="handleMatchTarget(this, 'cook')"></div>
+                            </div>
+                            <div class="flex items-center gap-4 bg-white p-3 rounded-3xl shadow-sm border-4 border-gray-100">
+                                <img id="g3-img2" src="" class="w-28 h-28 rounded-2xl object-cover">
+                                <div id="g3-target2" class="flex-1 drop-zone rounded-2xl cursor-pointer flex items-center justify-center" onclick="handleMatchTarget(this, 'read')"></div>
+                            </div>
+                        </div>
+                        <!-- Bank -->
+                        <div class="bg-blue-50 p-8 rounded-[2rem] border-4 border-blue-200 flex flex-col gap-6 justify-center" id="g3-bank">
+                            <div class="word-chip bg-white border-4 border-indigo-200 rounded-2xl p-6 text-2xl font-black text-center shadow-md text-gray-700 hover:border-indigo-500" onclick="selectMatchWord(this)" data-val="read">She is reading.</div>
+                            <div class="word-chip bg-white border-4 border-indigo-200 rounded-2xl p-6 text-2xl font-black text-center shadow-md text-gray-700 hover:border-indigo-500" onclick="selectMatchWord(this)" data-val="cook">She is cooking.</div>
+                        </div>
+                    </div>
+                    <div class="text-center mt-10">
+                        <button onclick="checkGameMatch()" class="px-10 py-4 bg-indigo-600 text-white rounded-full font-black text-2xl shadow-lg hover:bg-indigo-700 transition btn-hover">Check Match</button>
+                    </div>
+                </div>
+
+                <!-- Game 4: Fill in the Blank -->
+                <div id="game-4" class="game-slide hidden slide-in-right">
+                    <h3 class="text-3xl font-black text-center mb-8 text-gray-700">4. Grammar Race</h3>
+                    <div class="max-w-3xl mx-auto space-y-8">
+                        <div class="flex items-center gap-8 bg-white p-8 rounded-[2rem] shadow-md border-4 border-gray-100">
+                            <img id="g4-img1" src="" class="w-40 h-40 rounded-2xl object-cover shadow-sm border-2 border-indigo-50">
+                            <div class="flex-1">
+                                <p class="text-3xl font-black text-gray-700 mb-2">She is <input type="text" id="g4-in1" class="w-40 border-b-4 border-gray-300 focus:border-indigo-500 outline-none text-center bg-transparent text-indigo-600" placeholder="..."> (cook)</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-8 bg-white p-8 rounded-[2rem] shadow-md border-4 border-gray-100">
+                            <div class="flex-1 text-right">
+                                <p class="text-3xl font-black text-gray-700 mb-2">They <input type="text" id="g4-in2" class="w-32 border-b-4 border-gray-300 focus:border-indigo-500 outline-none text-center bg-transparent text-indigo-600" placeholder="..."> playing.</p>
+                            </div>
+                            <div class="w-40 h-40 rounded-2xl bg-indigo-100 flex items-center justify-center shadow-sm text-6xl border-4 border-indigo-200">⚽</div>
+                        </div>
+                        <div class="text-center mt-8">
+                            <button onclick="checkGameFill()" class="px-10 py-4 bg-indigo-600 text-white rounded-full font-black text-2xl shadow-lg hover:bg-indigo-700 transition btn-hover">Submit Words</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Game 5: Error Correction -->
+                <div id="game-5" class="game-slide hidden slide-in-right">
+                    <h3 class="text-3xl font-black text-center mb-8 text-gray-700">5. Fix the Mistake!</h3>
+                    <div class="max-w-2xl mx-auto text-center space-y-8">
+                        <div class="bg-red-50 border-4 border-red-200 rounded-[2rem] p-10 shadow-sm relative overflow-hidden">
+                            <i class="fa-solid fa-bug text-6xl text-red-300 absolute -top-4 -left-4 transform -rotate-12 opacity-50"></i>
+                            <p class="text-4xl font-black text-gray-600 line-through decoration-red-500 decoration-4 mb-4 relative z-10">"He is eat."</p>
+                            <p class="text-xl text-gray-500 font-bold relative z-10">Oh no! A grammar bug! Type the correct sentence below:</p>
+                        </div>
+                        <div>
+                            <input type="text" id="g5-input" class="w-full text-center p-6 text-3xl font-bold border-4 border-gray-200 rounded-2xl focus:border-indigo-500 outline-none shadow-inner text-gray-700" placeholder="Type here...">
+                        </div>
+                        <button onclick="checkGameFix()" class="px-10 py-4 bg-indigo-600 text-white rounded-full font-black text-2xl shadow-lg hover:bg-indigo-700 transition btn-hover">Fix It! 🛠️</button>
+                    </div>
+                </div>
+
+                <!-- Game 6: Write Your Own -->
+                <div id="game-6" class="game-slide hidden slide-in-right">
+                    <h3 class="text-3xl font-black text-center mb-8 text-gray-700">6. You are the Writer</h3>
+                    <div class="max-w-2xl mx-auto text-center space-y-8">
+                        <img id="g6-img" src="" class="w-72 h-72 object-cover rounded-[2rem] shadow-xl mx-auto border-4 border-indigo-100">
+                        <p class="text-2xl font-black text-gray-600">What is the boy doing?</p>
+                        <input type="text" id="g6-input" class="w-full text-center p-6 text-3xl font-bold border-4 border-gray-200 rounded-2xl focus:border-indigo-500 outline-none text-gray-700 shadow-inner" placeholder="The boy is...">
+                        <button onclick="checkGameWrite()" class="px-10 py-4 bg-indigo-600 text-white rounded-full font-black text-2xl shadow-lg hover:bg-indigo-700 transition btn-hover">Submit Sentence</button>
+                    </div>
+                </div>
+
+                <!-- Game 7: Speed Round -->
+                <div id="game-7" class="game-slide hidden slide-in-right h-full flex flex-col">
+                    <h3 class="text-3xl font-black text-center mb-6 text-gray-700">7. Final Challenge: Speed Round ⚡</h3>
+                    <div class="w-full bg-gray-200 rounded-full h-3 mb-8 shadow-inner"><div id="speed-timer" class="timer-bar w-full rounded-full"></div></div>
+                    
+                    <div id="speed-q-container" class="bg-white border-4 border-yellow-300 rounded-[2rem] p-10 max-w-3xl mx-auto w-full text-center flex-1 flex flex-col justify-center shadow-xl">
+                        <!-- Content injected via JS -->
+                    </div>
+                </div>
+                
+                <!-- Win Screen -->
+                <div id="game-8" class="game-slide hidden fade-in h-full flex flex-col items-center justify-center text-center">
+                    <div class="text-[10rem] animate-bounce mb-6">🏆</div>
+                    <h2 class="text-6xl font-black text-indigo-600 mb-6 brand-font">Awesome Job, <span id="win-name" class="text-yellow-500"></span>!</h2>
+                    <p class="text-3xl text-gray-600 font-bold mb-10 bg-gray-100 px-8 py-4 rounded-3xl border-4 border-gray-200">Final Score: <span id="final-score" class="text-indigo-600 text-5xl ml-4 font-black">0</span></p>
+                    <button onclick="location.reload()" class="px-10 py-5 bg-green-500 text-white rounded-full font-black text-3xl shadow-xl hover:bg-green-600 transition btn-hover">Play Again! 🔄</button>
+                </div>
+
+            </div> <!-- End game container -->
+            
+            <!-- Global Feedback Overlay for Games -->
+            <div id="game-feedback" class="absolute bottom-10 left-1/2 transform -translate-x-1/2 hidden bg-white px-10 py-5 rounded-full shadow-2xl border-4 font-black text-3xl z-50"></div>
+            
+            <div id="next-game-btn" class="absolute bottom-6 right-6 hidden z-40">
+                <button onclick="nextGame()" class="px-8 py-4 bg-green-500 text-white rounded-2xl font-black text-xl shadow-xl hover:bg-green-600 pop-correct btn-hover">Next <i class="fa-solid fa-arrow-right ml-2"></i></button>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const apiKey = ""; // Runtime Key
+        let generatedImages = [];
+        let score = 0;
+        let currentLearnSlide = 1;
+        let currentGame = 0; 
+        let pupilName = "";
+        
+        // Setup base prompts
+        const prompts = [
+            "a young boy eating a delicious sandwich, child friendly cartoon style, simple background, bright colors, no text",
+            "a young girl reading a big colorful book, child friendly cartoon style, simple background, bright colors, no text",
+            "a man running fast in a park, child friendly cartoon style, simple background, bright colors, no text",
+            "a woman cooking soup in a kitchen, child friendly cartoon style, simple background, bright colors, no text"
+        ];
+
+        async function initApp() {
+            try {
+                const promises = prompts.map(prompt => 
+                    fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`, {
+                        method: 'POST',
+                        body: JSON.stringify({ instances: { prompt: prompt }, parameters: { sampleCount: 1 } })
+                    }).then(res => res.json())
+                );
+                const results = await Promise.all(promises);
+                generatedImages = results.map(r => `data:image/png;base64,${r.predictions[0].bytesBase64Encoded}`);
+                
+                assignImagesToUI();
+                document.getElementById('loading-screen').style.display = 'none';
+                switchAppMode('learn');
+            } catch (error) {
+                console.error(error);
+                document.getElementById('loading-screen').innerHTML = `<p class="text-red-500 font-bold text-2xl">Oops! Could not load the magic pictures. Please refresh!</p>`;
+            }
+        }
+
+        function assignImagesToUI() {
+            // Learn UI 
+            for(let i=0; i<4; i++) {
+                const el = document.getElementById(`img-${i}`);
+                if(el) el.src = generatedImages[i];
+            }
+            document.getElementById('img-0-s2').src = generatedImages[0];
+            
+            // Play UI
+            document.getElementById('g1-img').src = generatedImages[0]; 
+            document.getElementById('g2-img').src = generatedImages[2]; 
+            document.getElementById('g3-img1').src = generatedImages[3]; 
+            document.getElementById('g3-img2').src = generatedImages[1]; 
+            document.getElementById('g4-img1').src = generatedImages[3]; 
+            document.getElementById('g6-img').src = generatedImages[0]; 
+            
+            setupBuilderGame();
+        }
+
+        // --- NAVIGATION STATE ---
+        function switchAppMode(mode) {
+            document.getElementById('mode-learn').classList.add('hidden');
+            document.getElementById('mode-play').classList.add('hidden');
+            document.getElementById('nav-learn').className = "flex-1 md:w-48 py-3 px-6 rounded-2xl font-bold text-lg btn-hover bg-gray-100 text-gray-500";
+            document.getElementById('nav-play').className = "flex-1 md:w-48 py-3 px-6 rounded-2xl font-bold text-lg btn-hover bg-gray-100 text-gray-500";
+
+            if(mode === 'learn') {
+                document.getElementById('mode-learn').classList.remove('hidden');
+                document.getElementById('mode-learn').classList.add('flex');
+                document.getElementById('nav-learn').classList.replace('bg-gray-100', 'bg-indigo-600');
+                document.getElementById('nav-learn').classList.replace('text-gray-500', 'text-white');
+                showLearnSlide(currentLearnSlide);
+            } else {
+                document.getElementById('mode-play').classList.remove('hidden');
+                document.getElementById('mode-play').classList.add('flex');
+                document.getElementById('nav-play').classList.replace('bg-gray-100', 'bg-indigo-600');
+                document.getElementById('nav-play').classList.replace('text-gray-500', 'text-white');
+                showGame(currentGame);
+            }
+        }
+
+        function speak(text) {
+            if('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.85; 
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // --- LEARN MODE LOGIC (Interactive Steps) ---
+        function showLearnSlide(index) {
+            document.querySelectorAll('.learn-slide').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`learn-slide-${index}`).classList.remove('hidden');
+            document.getElementById('slide-counter').innerText = `Slide ${index} / 7`;
+            
+            const nextBtn = document.getElementById('learn-next-btn');
+            if(index === 7) {
+                nextBtn.innerHTML = `Let's Play! <i class="fa-solid fa-gamepad ml-2"></i>`;
+                nextBtn.classList.replace('bg-indigo-600', 'bg-green-500');
+                nextBtn.onclick = () => switchAppMode('play');
+            } else {
+                nextBtn.innerHTML = `Next <i class="fa-solid fa-arrow-right ml-2"></i>`;
+                nextBtn.classList.replace('bg-green-500', 'bg-indigo-600');
+                nextBtn.onclick = () => nextSlide();
+            }
+        }
+        function nextSlide() { if(currentLearnSlide < 7) showLearnSlide(++currentLearnSlide); }
+        function prevSlide() { if(currentLearnSlide > 1) showLearnSlide(--currentLearnSlide); }
+
+        function checkQuick(btn, isCorrect) {
+            const siblings = btn.parentElement.children;
+            for(let b of siblings) b.className = "w-full p-6 bg-white border-4 border-gray-200 rounded-3xl text-3xl font-bold text-gray-400 opacity-50 text-left transition";
+            if(isCorrect) {
+                btn.className = "w-full p-6 bg-green-50 text-green-700 border-4 border-green-500 rounded-3xl text-3xl font-bold pop-correct opacity-100 text-left";
+            } else {
+                btn.className = "w-full p-6 bg-red-50 text-red-700 border-4 border-red-500 rounded-3xl text-3xl font-bold shake-error opacity-100 text-left";
+            }
+        }
+
+        // --- PLAY MODE LOGIC (Games) ---
+        function updateScore(points) {
+            score += points;
+            const sd = document.getElementById('score-display');
+            sd.innerText = score;
+            sd.classList.add('pop-correct');
+            setTimeout(() => sd.classList.remove('pop-correct'), 400);
+        }
+
+        function startPractice() {
+            const inputName = document.getElementById('pupil-name-input').value.trim();
+            pupilName = inputName ? inputName : "Champion";
+            
+            document.getElementById('display-pupil-name').innerText = pupilName;
+            document.getElementById('progress-container').classList.remove('hidden');
+            
+            nextGame(); 
+        }
+
+        function showGame(index) {
+            document.querySelectorAll('.game-slide').forEach(el => el.classList.add('hidden'));
+            document.getElementById('next-game-btn').classList.add('hidden');
+            
+            if(index === 0) {
+                document.getElementById('game-0').classList.remove('hidden');
+                document.getElementById('progress-container').classList.add('hidden');
+            }
+            else if(index >= 1 && index <= 7) {
+                document.getElementById(`game-${index}`).classList.remove('hidden');
+                document.getElementById('progress-container').classList.remove('hidden');
+                document.getElementById('game-progress').style.width = `${(index/7)*100}%`;
+                
+                if(index === 7) startSpeedRound();
+            } else {
+                document.getElementById('game-8').classList.remove('hidden');
+                document.getElementById('progress-container').classList.add('hidden');
+                document.getElementById('final-score').innerText = score;
+                document.getElementById('win-name').innerText = pupilName;
+            }
+        }
+
+        function nextGame() {
+            currentGame++;
+            showGame(currentGame);
+        }
+
+        function showGameFeedback(isCorrect, msg) {
+            const fb = document.getElementById('game-feedback');
+            fb.innerText = msg;
+            fb.className = `absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-white px-10 py-5 rounded-full shadow-2xl border-4 font-black text-3xl z-50 pop-correct ${isCorrect ? 'border-green-500 text-green-600' : 'border-red-500 text-red-600'}`;
+            fb.classList.remove('hidden');
+            setTimeout(() => fb.classList.add('hidden'), 1500);
+
+            if(isCorrect) {
+                updateScore(10);
+                setTimeout(() => document.getElementById('next-game-btn').classList.remove('hidden'), 500);
+            }
+        }
+
+        // Game 1: MCQ
+        function checkGameMCQ(btn, isCorrect) {
+            if(btn.disabled) return;
+            Array.from(btn.parentElement.children).forEach(b => b.disabled = true);
+            if(isCorrect) {
+                btn.classList.add('bg-green-50', 'border-green-500', 'text-green-700');
+                showGameFeedback(true, "Awesome! ✅");
+            } else {
+                btn.classList.add('bg-red-50', 'border-red-500', 'text-red-700', 'shake-error');
+                showGameFeedback(false, "Oops! Try again.");
+                setTimeout(() => {
+                    btn.classList.remove('bg-red-50', 'border-red-500', 'text-red-700', 'shake-error');
+                    Array.from(btn.parentElement.children).forEach(b => b.disabled = false);
+                }, 1500);
+            }
+        }
+
+        // Game 2: Builder
+        function setupBuilderGame() {
+            const bank = document.getElementById('g2-bank');
+            const words = ['He', 'is', 'running', 'run', 'runs'].sort(() => Math.random() - 0.5);
+            bank.innerHTML = words.map(w => `<div class="word-chip bg-white border-4 border-gray-200 px-6 py-4 rounded-2xl text-2xl font-black text-gray-600 hover:border-indigo-400 shadow-sm" onclick="toggleBuilderWord(this)">${w}</div>`).join('');
+        }
+        function toggleBuilderWord(chip) {
+            const drop = document.getElementById('g2-drop');
+            const bank = document.getElementById('g2-bank');
+            if(chip.parentElement === bank) {
+                drop.appendChild(chip);
+                chip.classList.replace('border-gray-200', 'border-indigo-500');
+                chip.classList.add('bg-indigo-50', 'text-indigo-700');
+            } else {
+                bank.appendChild(chip);
+                chip.classList.replace('border-indigo-500', 'border-gray-200');
+                chip.classList.remove('bg-indigo-50', 'text-indigo-700');
+            }
+        }
+        function resetGameBuilder() {
+            const drop = document.getElementById('g2-drop');
+            while(drop.firstChild) toggleBuilderWord(drop.firstChild);
+        }
+        function checkGameBuilder(correctString) {
+            const drop = document.getElementById('g2-drop');
+            const current = Array.from(drop.children).map(c => c.innerText).join(' ');
+            if(current === correctString) {
+                drop.classList.add('correct-glow');
+                showGameFeedback(true, "Perfect Building! 🧱");
+            } else {
+                drop.classList.add('error-glow', 'shake-error');
+                showGameFeedback(false, "Not quite right!");
+                setTimeout(() => drop.classList.remove('error-glow', 'shake-error'), 1000);
+            }
+        }
+
+        // Game 3: Match
+        let selectedMatchWord = null;
+        function selectMatchWord(chip) {
+            document.querySelectorAll('#g3-bank .word-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            selectedMatchWord = chip;
+            document.querySelectorAll('.drop-zone').forEach(z => {
+                if(z.children.length === 0) z.classList.add('selected-target');
+            });
+        }
+        function handleMatchTarget(targetDiv, correctVal) {
+            if(!selectedMatchWord) return;
+            document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('selected-target'));
+            targetDiv.appendChild(selectedMatchWord);
+            selectedMatchWord.classList.remove('selected');
+            selectedMatchWord.classList.replace('bg-white', 'bg-transparent');
+            selectedMatchWord.classList.replace('border-indigo-200', 'border-transparent');
+            selectedMatchWord.classList.remove('shadow-md');
+            selectedMatchWord.onclick = null; 
+            selectedMatchWord = null;
+        }
+        function checkGameMatch() {
+            const t1 = document.getElementById('g3-target1').firstChild;
+            const t2 = document.getElementById('g3-target2').firstChild;
+            if(!t1 || !t2) { showGameFeedback(false, "Place both words!"); return; }
+            
+            if(t1.getAttribute('data-val') === 'cook' && t2.getAttribute('data-val') === 'read') {
+                showGameFeedback(true, "Perfect Match! 🧩");
+            } else {
+                showGameFeedback(false, "Swap them around!");
+                setTimeout(() => {
+                    document.getElementById('g3-bank').appendChild(t1);
+                    document.getElementById('g3-bank').appendChild(t2);
+                    t1.onclick = () => selectMatchWord(t1);
+                    t2.onclick = () => selectMatchWord(t2);
+                    t1.className = "word-chip bg-white border-4 border-indigo-200 rounded-2xl p-6 text-2xl font-black text-center shadow-md text-gray-700 hover:border-indigo-500";
+                    t2.className = "word-chip bg-white border-4 border-indigo-200 rounded-2xl p-6 text-2xl font-black text-center shadow-md text-gray-700 hover:border-indigo-500";
+                }, 1000);
+            }
+        }
+
+        // Game 4: Fill Blank
+        function checkGameFill() {
+            const i1 = document.getElementById('g4-in1').value.toLowerCase().trim();
+            const i2 = document.getElementById('g4-in2').value.toLowerCase().trim();
+            
+            if(i1 === 'cooking' && (i2 === 'are' || i2 === "'re")) {
+                document.getElementById('g4-in1').classList.add('text-green-600', 'border-green-500');
+                document.getElementById('g4-in2').classList.add('text-green-600', 'border-green-500');
+                showGameFeedback(true, "Super Grammar! ✨");
+            } else {
+                showGameFeedback(false, "Check spelling!");
+            }
+        }
+
+        // Game 5: Error Fix
+        function checkGameFix() {
+            const inp = document.getElementById('g5-input');
+            const val = inp.value.toLowerCase().trim().replace('.','');
+            if(val === "he is eating") {
+                inp.classList.add('border-green-500', 'text-green-600', 'bg-green-50');
+                showGameFeedback(true, "Bug Squashed! 🐛🔨");
+            } else {
+                inp.classList.add('shake-error', 'border-red-400');
+                showGameFeedback(false, "Remember: is + verb-ing");
+                setTimeout(() => inp.classList.remove('shake-error', 'border-red-400'), 800);
+            }
+        }
+
+        // Game 6: Write
+        function checkGameWrite() {
+            const inp = document.getElementById('g6-input');
+            const val = inp.value.toLowerCase().trim();
+            if(val.includes('is') && val.includes('eating') && val.length > 5) {
+                inp.classList.add('border-green-500', 'text-green-600', 'bg-green-50');
+                showGameFeedback(true, "Master Writer! 📝");
+            } else {
+                inp.classList.add('shake-error', 'border-red-400');
+                showGameFeedback(false, "Include 'is' and 'eating'!");
+                setTimeout(() => inp.classList.remove('shake-error', 'border-red-400'), 800);
+            }
+        }
+
+        // Game 7: Speed Round
+        let speedIndex = 0;
+        let speedTimer;
+        const speedQs = [
+            { q: "She ___ reading.", ans: ["am", "is", "are"], correct: 1 },
+            { q: "They are ___.", ans: ["jump", "jumps", "jumping"], correct: 2 },
+            { q: "I ___ eating.", ans: ["am", "is", "are"], correct: 0 }
+        ];
+
+        function startSpeedRound() {
+            speedIndex = 0;
+            renderSpeedQ();
+        }
+
+        function renderSpeedQ() {
+            if(speedIndex >= speedQs.length) {
+                clearTimeout(speedTimer);
+                document.getElementById('speed-q-container').innerHTML = `<h2 class="text-5xl font-black text-green-600">Speed Round Cleared! ⚡</h2>`;
+                setTimeout(() => nextGame(), 2000);
+                return;
+            }
+            
+            const q = speedQs[speedIndex];
+            const html = `
+                <p class="text-4xl font-black text-indigo-900 mb-10">${q.q}</p>
+                <div class="flex gap-6 justify-center">
+                    ${q.ans.map((a, i) => `<button onclick="checkSpeed(${i}, ${q.correct})" class="px-10 py-5 bg-white border-4 border-indigo-200 rounded-3xl text-3xl font-bold shadow-md hover:bg-indigo-50 hover:border-indigo-500 transition btn-hover text-gray-700">${a}</button>`).join('')}
+                </div>
+            `;
+            document.getElementById('speed-q-container').innerHTML = html;
+            
+            const bar = document.getElementById('speed-timer');
+            bar.style.transition = 'none';
+            bar.style.width = '100%';
+            setTimeout(() => {
+                bar.style.transition = 'width 5s linear';
+                bar.style.width = '0%';
+            }, 50);
+
+            speedTimer = setTimeout(() => {
+                showGameFeedback(false, "Too slow! Next.");
+                speedIndex++;
+                renderSpeedQ();
+            }, 5000);
+        }
+
+        function checkSpeed(selected, correct) {
+            clearTimeout(speedTimer);
+            if(selected === correct) {
+                updateScore(5);
+                document.getElementById('speed-q-container').classList.add('pop-correct', 'bg-green-50', 'border-green-300');
+                setTimeout(() => document.getElementById('speed-q-container').classList.remove('pop-correct', 'bg-green-50', 'border-green-300'), 400);
+            }
+            speedIndex++;
+            setTimeout(renderSpeedQ, 400); 
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>

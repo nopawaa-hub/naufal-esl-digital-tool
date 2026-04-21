@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guess Where Am I? - Interactive Speaking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f0f9ff;
+            color: #334155;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .speech-bubble-left { border-radius: 1.5rem 1.5rem 1.5rem 0.25rem; }
+        .speech-bubble-right { border-radius: 1.5rem 1.5rem 0.25rem 1.5rem; }
+        
+        @keyframes pulse-ring {
+            0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .mic-active {
+            animation: pulse-ring 1.5s infinite;
+            background-color: #ef4444 !important; /* Tailwind Red-500 */
+            color: white !important;
+            border-color: #ef4444 !important;
+        }
+        .slide-enter {
+            animation: slideIn 0.4s ease-out forwards;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .word-bank-hidden { transform: translateY(-150%); opacity: 0; pointer-events: none; }
+        .word-bank-visible { transform: translateY(0); opacity: 1; pointer-events: auto; }
+    </style>
+</head>
+<body class="p-4 w-full">
+
+    <div class="max-w-2xl w-full mx-auto bg-white rounded-3xl shadow-xl border-4 border-blue-300 overflow-hidden flex flex-col" style="height: 85vh; max-height: 800px;">
+        
+        <!-- Header / Progress Area -->
+        <div class="bg-blue-50 p-4 border-b-4 border-blue-200 shrink-0 relative z-20">
+            <div class="flex justify-between items-center mb-2">
+                <h1 class="text-2xl font-black text-blue-600 tracking-wide flex items-center gap-2">
+                    <i class="ph-fill ph-house text-3xl"></i> Where Am I?
+                </h1>
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleWordBank()" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold text-sm border-2 border-indigo-300 hover:bg-indigo-200 flex items-center gap-1 transition-colors">
+                        <i class="ph-bold ph-book-open-text"></i> Helper
+                    </button>
+                    <div class="bg-yellow-100 text-yellow-700 px-4 py-1 rounded-full font-black text-lg border-2 border-yellow-400 flex items-center gap-1">
+                        <i class="ph-fill ph-star text-yellow-500"></i> <span id="score-display">0</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Progress Bar -->
+            <div class="w-full bg-blue-200 rounded-full h-3 mb-1 overflow-hidden hidden" id="progress-container">
+                <div class="bg-green-400 h-3 rounded-full transition-all duration-500 w-0" id="progress-bar"></div>
+            </div>
+
+            <!-- Word Bank Panel -->
+            <div id="word-bank" class="absolute top-full left-0 right-0 bg-white border-b-4 border-indigo-200 shadow-lg p-4 transition-all duration-300 word-bank-hidden z-10">
+                <h3 class="font-black text-indigo-600 mb-2 flex items-center gap-2"><i class="ph-bold ph-lightbulb"></i> Word Bank</h3>
+                <div class="flex flex-wrap gap-2">
+                    <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-200 font-bold text-sm">bedroom</span>
+                    <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-200 font-bold text-sm">bathroom</span>
+                    <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-200 font-bold text-sm">kitchen</span>
+                    <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-200 font-bold text-sm">living room</span>
+                    <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-200 font-bold text-sm">dining room</span>
+                    <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-200 font-bold text-sm">sleep</span>
+                    <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-200 font-bold text-sm">cook</span>
+                    <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-200 font-bold text-sm">eat</span>
+                    <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-200 font-bold text-sm">watch TV</span>
+                    <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-200 font-bold text-sm">brush teeth</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 p-6 md:p-8 overflow-y-auto bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiNlMGYyZmUiLz48L3N2Zz4=')] slide-enter flex flex-col justify-center" id="app-content">
+            <!-- Dynamic content will be injected here by JavaScript -->
+        </div>
+
+        <!-- Footer / Controls Area -->
+        <div class="bg-white p-6 border-t-4 border-slate-100 shrink-0 flex flex-col items-center justify-center min-h-[160px]" id="controls-area">
+            <!-- Controls injected here -->
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATA: The Activity Questions ---
+        const questions = [
+            {
+                type: 'intro',
+                title: 'Welcome to the Speaking Challenge! 🗣️',
+                desc: 'You will read a sentence, click the microphone, and speak your answer loudly and clearly. Make sure you allow microphone permissions!'
+            },
+            // Part 1: Guided Speaking
+            {
+                type: 'guided',
+                prompt: 'I am brushing my teeth.',
+                hint: 'You are in the...',
+                clue: 'It has a sink, a mirror, and a shower.',
+                expected: ['bathroom', 'bath room'],
+                icon: 'ph-bathtub'
+            },
+            {
+                type: 'guided',
+                prompt: 'My sister is watching TV.',
+                hint: 'She is in the...',
+                clue: 'It has a big sofa and a television.',
+                expected: ['living room', 'livingroom'],
+                icon: 'ph-television'
+            },
+            {
+                type: 'guided',
+                prompt: 'I am sleeping.',
+                hint: 'You are in the...',
+                clue: 'It has a comfortable bed.',
+                expected: ['bedroom', 'bed room'],
+                icon: 'ph-bed'
+            },
+            {
+                type: 'guided',
+                prompt: 'We are eating dinner.',
+                hint: 'You are in the...',
+                clue: 'It has a large table and many chairs.',
+                expected: ['dining room', 'diningroom'],
+                icon: 'ph-fork-knife'
+            },
+            {
+                type: 'guided',
+                prompt: 'Mother is cooking.',
+                hint: 'She is in the...',
+                clue: 'It has a stove and a refrigerator.',
+                expected: ['kitchen'],
+                icon: 'ph-cooking-pot'
+            },
+            // Part 2: Open Q&A (Check for keywords in their spoken sentence)
+            {
+                type: 'qa',
+                prompt: 'What can I do in the kitchen?',
+                hint: 'Speak a full sentence (e.g., You can...)',
+                clue: 'Think about food or drinks!',
+                expectedKeywords: ['cook', 'eat', 'drink', 'bake', 'make', 'wash dishes'],
+                icon: 'ph-cooking-pot'
+            },
+            {
+                type: 'qa',
+                prompt: 'What can I do in the bedroom?',
+                hint: 'Speak a full sentence (e.g., You can...)',
+                clue: 'Think about resting at night!',
+                expectedKeywords: ['sleep', 'rest', 'read', 'play', 'relax'],
+                icon: 'ph-bed'
+            },
+            {
+                type: 'qa',
+                prompt: 'What can I do in the living room?',
+                hint: 'Speak a full sentence (e.g., You can...)',
+                clue: 'Think about family time and entertainment!',
+                expectedKeywords: ['watch', 'tv', 'sit', 'play', 'relax', 'talk', 'television'],
+                icon: 'ph-television'
+            },
+            {
+                type: 'end'
+            }
+        ];
+
+        // --- STATE ---
+        let currentIndex = 0;
+        let score = 0;
+        let isListening = false;
+        let speechSupported = true;
+        let wordBankVisible = false;
+        const apiKey = ""; // Provided by execution environment
+
+        // New variables for Smart Silence Detection
+        let silenceTimer = null;
+        let currentInterim = '';
+        let isProcessing = false;
+
+        // --- SPEECH RECOGNITION SETUP ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false; // Stop after they finish speaking one phrase
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = function() {
+                isListening = true;
+                isProcessing = false;
+                currentInterim = '';
+                clearTimeout(silenceTimer);
+
+                updateFeedback("Listening... Speak now!", "text-blue-500", true);
+                document.getElementById('mic-btn').classList.add('mic-active');
+
+                // Show listening indicator in bubble
+                const bBubble = document.getElementById('b-bubble-text');
+                if (bBubble) bBubble.innerHTML = `<span class="animate-pulse text-blue-500 font-bold">Listening...</span>`;
+            };
+
+            recognition.onresult = function(event) {
+                if (isProcessing) return;
+                clearTimeout(silenceTimer); // Reset the silence timer on every new sound
+
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                const bBubble = document.getElementById('b-bubble-text');
+                
+                // Show live transcription as they speak
+                if (interimTranscript !== '') {
+                    currentInterim = interimTranscript;
+                    if (bBubble) bBubble.innerHTML = `<span class="text-xl font-bold text-slate-400 italic">"${interimTranscript}..."</span>`;
+                }
+
+                // Process the final result immediately if the browser detects the end naturally
+                if (finalTranscript !== '') {
+                    processTranscript(finalTranscript);
+                } else if (currentInterim !== '') {
+                    // Smart Silence Detection: If browser hangs but we have text, force submit after 1.5 seconds of silence
+                    silenceTimer = setTimeout(() => {
+                        if (!isProcessing) {
+                            processTranscript(currentInterim);
+                        }
+                    }, 1500);
+                }
+            };
+
+            recognition.onerror = function(event) {
+                isListening = false;
+                isProcessing = false;
+                clearTimeout(silenceTimer);
+                
+                document.getElementById('mic-btn').classList.remove('mic-active');
+                if (event.error === 'no-speech') {
+                    updateFeedback("I didn't hear anything. Try again!", "text-yellow-600");
+                } else if (event.error === 'not-allowed') {
+                    updateFeedback("Microphone access denied! Please allow it in your browser.", "text-red-500");
+                } else {
+                    updateFeedback("Error: " + event.error, "text-red-500");
+                }
+            };
+
+            recognition.onend = function() {
+                isListening = false;
+                clearTimeout(silenceTimer);
+                const micBtn = document.getElementById('mic-btn');
+                if (micBtn) micBtn.classList.remove('mic-active');
+            };
+        } else {
+            speechSupported = false;
+        }
+
+        // --- DOM ELEMENTS ---
+        const appContent = document.getElementById('app-content');
+        const controlsArea = document.getElementById('controls-area');
+        const scoreDisplay = document.getElementById('score-display');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+
+        // --- CORE FUNCTIONS ---
+        function processTranscript(text) {
+            if (isProcessing || !text) return;
+            isProcessing = true;
+            recognition.stop(); // Force stop to reset the mic
+            
+            const transcript = text.toLowerCase().trim();
+            const bBubble = document.getElementById('b-bubble-text');
+            if (bBubble) bBubble.innerHTML = `<span class="text-xl font-bold text-slate-700">"${transcript}"</span>`;
+            
+            handleAnswer(transcript);
+        }
+
+        function toggleWordBank() {
+            wordBankVisible = !wordBankVisible;
+            const panel = document.getElementById('word-bank');
+            if (wordBankVisible) {
+                panel.classList.remove('word-bank-hidden');
+                panel.classList.add('word-bank-visible');
+            } else {
+                panel.classList.remove('word-bank-visible');
+                panel.classList.add('word-bank-hidden');
+            }
+        }
+
+        function initApp() {
+            if (!speechSupported) {
+                appContent.innerHTML = `
+                    <div class="text-center p-8 bg-red-50 rounded-2xl border-2 border-red-200">
+                        <i class="ph-fill ph-warning-circle text-6xl text-red-500 mb-4"></i>
+                        <h2 class="text-2xl font-bold text-red-700 mb-2">Browser Not Supported</h2>
+                        <p class="text-red-600">Sorry! Your browser does not support Speech Recognition. Please try using Google Chrome.</p>
+                    </div>`;
+                return;
+            }
+            renderSlide();
+        }
+
+        function updateProgress() {
+            if (currentIndex === 0 || currentIndex === questions.length - 1) {
+                progressContainer.classList.add('hidden');
+            } else {
+                progressContainer.classList.remove('hidden');
+                const percent = (currentIndex / (questions.length - 2)) * 100; // -2 to exclude intro and end
+                progressBar.style.width = `${percent}%`;
+            }
+        }
+
+        function nextSlide() {
+            if (isListening) recognition.stop();
+            currentIndex++;
+            
+            // Re-trigger animation
+            appContent.classList.remove('slide-enter');
+            void appContent.offsetWidth; // trigger reflow
+            appContent.classList.add('slide-enter');
+            
+            renderSlide();
+        }
+
+        function toggleMic() {
+            if (isListening) {
+                recognition.stop();
+            } else {
+                try {
+                    recognition.start();
+                } catch(e) {
+                    console.log("Mic already started");
+                }
+            }
+        }
+
+        function updateFeedback(message, colorClass = "text-slate-500", showSpinner = false) {
+            const fb = document.getElementById('feedback-msg');
+            if (fb) {
+                let icon = '';
+                if (showSpinner) icon = '<i class="ph ph-spinner animate-spin mr-2"></i>';
+                else if (colorClass.includes('green')) icon = '<i class="ph-fill ph-check-circle mr-2"></i>';
+                else if (colorClass.includes('yellow') || colorClass.includes('red')) icon = '<i class="ph-fill ph-x-circle mr-2"></i>';
+                
+                fb.className = `font-bold text-lg mt-4 text-center ${colorClass} transition-all max-w-md mx-auto`;
+                fb.innerHTML = `${icon}${message}`;
+            }
+        }
+
+        async function handleAnswer(transcript) {
+            const q = questions[currentIndex];
+            const micBtn = document.getElementById('mic-btn');
+            
+            // Disable mic while AI is checking
+            if(micBtn) {
+                micBtn.disabled = true;
+                micBtn.classList.add('opacity-50');
+            }
+            updateFeedback("Teacher AI is thinking...", "text-indigo-500", true);
+
+            try {
+                // Call Gemini API
+                const systemPrompt = `You are a friendly ESL teacher for Year 4 children. 
+Game: 'Guess the Room / Actions in the Room'.
+The core theme is specifically rooms in a house (Bedroom, Bathroom, Kitchen, Living Room, Dining Room).
+Question asked: "${q.prompt}"
+Target keywords: ${q.expected ? q.expected.join(', ') : q.expectedKeywords.join(', ')}
+
+The student said: "${transcript}".
+
+Evaluation Rules:
+1. If their answer contains the correct main house room (e.g., "bathroom", "kitchen"), mark isCorrect: true and praise them simply.
+2. STRICT RULE: If they give a word that is NOT one of the main house rooms (like saying "toilet" instead of "bathroom", or "restaurant" instead of "dining room"), mark isCorrect: false. Gently tell them: "That's close, but we are looking for a specific room in the house! Try again."
+3. For action questions (What can I do in...), check if the action makes sense for that specific room. If they say an action for the wrong room, mark isCorrect: false.
+4. Keep feedback very short (1-2 sentences max), kind, and simple.`;
+
+                const payload = {
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    contents: [{ parts: [{ text: `Evaluate this answer: "${transcript}"` }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                isCorrect: { type: "BOOLEAN" },
+                                feedback: { type: "STRING" }
+                            },
+                            required: ["isCorrect", "feedback"]
+                        }
+                    }
+                };
+
+                // Fetch AI with retry logic
+                let responseData = null;
+                for (let i = 0; i < 3; i++) {
+                    try {
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(payload)
+                        });
+                        const result = await response.json();
+                        const textResult = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                        responseData = JSON.parse(textResult);
+                        break; 
+                    } catch (e) {
+                        if (i === 2) throw e;
+                        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i))); // Delay retry
+                    }
+                }
+
+                const bBubble = document.getElementById('b-bubble');
+                const bBubbleText = document.getElementById('b-bubble-text');
+                
+                if (responseData && responseData.isCorrect) {
+                    score++;
+                    scoreDisplay.innerText = score;
+                    
+                    if (bBubble) {
+                        bBubble.classList.replace('border-yellow-300', 'border-green-400');
+                        bBubble.classList.replace('bg-white', 'bg-green-50');
+                    }
+                    
+                    updateFeedback(responseData.feedback, "text-green-600");
+                    showNextButton();
+                } else {
+                    if (bBubble) {
+                        bBubble.classList.replace('border-yellow-300', 'border-red-300');
+                        bBubble.classList.replace('bg-white', 'bg-red-50');
+                        setTimeout(() => {
+                            bBubble.classList.replace('border-red-300', 'border-yellow-300');
+                            bBubble.classList.replace('bg-red-50', 'bg-white');
+                            if (bBubbleText) bBubbleText.innerHTML = `<span class="text-xl font-bold text-slate-400 italic text-center animate-pulse">${q.hint}</span>`;
+                        }, 4000);
+                    }
+                    updateFeedback(responseData ? responseData.feedback : "Not quite! Try again.", "text-yellow-600");
+                    
+                    if(micBtn) {
+                        micBtn.disabled = false;
+                        micBtn.classList.remove('opacity-50');
+                    }
+                }
+
+            } catch (error) {
+                console.error("AI Error:", error);
+                
+                // Offline Fallback logic
+                let isCorrect = q.type === 'guided' 
+                    ? q.expected.some(ans => transcript.includes(ans))
+                    : q.expectedKeywords.some(kw => transcript.includes(kw));
+                
+                if(isCorrect) {
+                    score++;
+                    scoreDisplay.innerText = score;
+                    updateFeedback("Correct! (Offline mode)", "text-green-600");
+                    showNextButton();
+                } else {
+                    updateFeedback("Not quite. Try again!", "text-yellow-600");
+                    if(micBtn) {
+                        micBtn.disabled = false;
+                        micBtn.classList.remove('opacity-50');
+                    }
+                }
+            }
+        }
+
+        function showNextButton() {
+            controlsArea.innerHTML = `
+                <p id="feedback-msg" class="font-bold text-lg mb-4 text-green-600"><i class="ph-fill ph-check-circle mr-2"></i>Excellent! You got it right.</p>
+                <button onclick="nextSlide()" class="w-full md:w-auto bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-12 rounded-2xl shadow-lg transform transition active:scale-95 text-xl flex items-center justify-center gap-2">
+                    Next Question <i class="ph-bold ph-arrow-right"></i>
+                </button>
+            `;
+        }
+
+        function showClue() {
+            const q = questions[currentIndex];
+            if (q && q.clue) {
+                const bBubbleText = document.getElementById('b-bubble-text');
+                if (bBubbleText) {
+                    bBubbleText.innerHTML = `<span class="text-lg font-bold text-orange-500 animate-pulse"><i class="ph-fill ph-lightbulb mr-1"></i> Clue: ${q.clue}</span>`;
+                }
+            }
+        }
+
+        // --- RENDER LOGIC ---
+        function renderSlide() {
+            updateProgress();
+            const q = questions[currentIndex];
+
+            if (q.type === 'intro') {
+                appContent.innerHTML = `
+                    <div class="text-center bg-white p-8 rounded-3xl border-4 border-blue-100 shadow-sm max-w-md mx-auto">
+                        <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <i class="ph-fill ph-microphone-stage text-5xl text-blue-500"></i>
+                        </div>
+                        <h2 class="text-3xl font-black text-blue-700 mb-4">${q.title}</h2>
+                        <p class="text-lg text-slate-600 font-semibold mb-4">${q.desc}</p>
+                        
+                        <div class="bg-blue-50 p-4 rounded-xl border-2 border-blue-200 flex items-start gap-3 text-left mb-6 shadow-inner">
+                            <i class="ph-fill ph-info text-blue-500 mt-1 text-2xl"></i>
+                            <p class="text-sm text-blue-800 font-bold">For the best high-end AI voice detection, please ensure you open this game in <span class="text-blue-600">Google Chrome</span>.</p>
+                        </div>
+                    </div>
+                `;
+                controlsArea.innerHTML = `
+                    <button onclick="nextSlide()" class="w-full md:w-auto bg-blue-500 hover:bg-blue-600 text-white font-black py-4 px-12 rounded-2xl shadow-[0_8px_0_#2563eb] active:shadow-[0_0px_0_#2563eb] active:translate-y-2 transform transition text-2xl">
+                        START GAME!
+                    </button>
+                `;
+            } 
+            else if (q.type === 'guided' || q.type === 'qa') {
+                
+                let titleBg = q.type === 'guided' ? 'bg-yellow-400' : 'bg-orange-400';
+                let titleText = q.type === 'guided' ? 'Part 1: Guess the Room!' : 'Part 2: Answer the Question!';
+
+                appContent.innerHTML = `
+                    <div class="w-full max-w-lg mx-auto">
+                        <div class="flex items-center gap-3 mb-8 justify-center">
+                            <div class="${titleBg} text-white px-4 py-1 rounded-full font-bold text-sm uppercase tracking-wide shadow-sm">
+                                ${titleText}
+                            </div>
+                        </div>
+
+                        <!-- Pupil A Bubble (The App) -->
+                        <div class="flex items-end gap-3 mb-8">
+                            <div class="bg-blue-100 text-blue-600 font-black w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 border-blue-300 text-xl shadow-sm">A</div>
+                            <div class="flex-1 bg-white border-2 border-blue-200 p-5 speech-bubble-left shadow-md relative">
+                                <p class="text-2xl font-bold text-slate-700 leading-snug">"${q.prompt}"</p>
+                                <i class="ph-duotone ${q.icon} text-6xl text-blue-100 absolute -right-2 -bottom-4 z-0 opacity-50 transform rotate-12"></i>
+                            </div>
+                        </div>
+
+                        <!-- Pupil B Bubble (The User) -->
+                        <div class="flex items-end gap-3 flex-row-reverse">
+                            <div class="bg-yellow-100 text-yellow-700 font-black w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 border-yellow-400 text-xl shadow-sm">B</div>
+                            <div id="b-bubble" class="flex-1 bg-white border-2 border-yellow-300 p-5 speech-bubble-right shadow-md transition-colors duration-300">
+                                <p id="b-bubble-text" class="text-xl font-bold text-slate-400 italic text-center animate-pulse">
+                                    ${q.hint}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                controlsArea.innerHTML = `
+                    <div class="w-full flex justify-center mb-4">
+                        <button onclick="showClue()" class="bg-orange-100 text-orange-700 px-4 py-2 rounded-full font-bold text-sm border-2 border-orange-300 hover:bg-orange-200 flex items-center gap-2 transition-colors shadow-sm">
+                            <i class="ph-bold ph-lightbulb"></i> Give me a Clue!
+                        </button>
+                    </div>
+                    <button id="mic-btn" onclick="toggleMic()" class="w-20 h-20 bg-slate-100 border-4 border-slate-300 rounded-full flex items-center justify-center text-slate-500 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-500 transition-all shadow-md focus:outline-none">
+                        <i class="ph-fill ph-microphone text-4xl"></i>
+                    </button>
+                    <p id="feedback-msg" class="font-bold text-lg mt-4 text-slate-500 text-center">Tap the mic and speak your answer!</p>
+                    <button onclick="nextSlide()" class="text-slate-400 font-bold mt-4 text-sm hover:text-slate-600 underline">Skip Question</button>
+                `;
+            }
+            else if (q.type === 'end') {
+                const total = questions.length - 2;
+                let message = score === total ? "Perfect Score! Amazing English! 🌟" : "Great effort! Keep practicing! 👍";
+                
+                appContent.innerHTML = `
+                    <div class="text-center bg-white p-8 rounded-3xl border-4 border-green-200 shadow-sm max-w-md mx-auto">
+                        <i class="ph-fill ph-confetti text-7xl text-yellow-500 mb-4 animate-bounce"></i>
+                        <h2 class="text-4xl font-black text-green-600 mb-4">Activity Complete!</h2>
+                        <p class="text-2xl font-bold text-slate-700 mb-2">You earned <span class="text-yellow-500">${score}</span> out of ${total} stars!</p>
+                        <p class="text-lg text-slate-500 font-bold">${message}</p>
+                    </div>
+                `;
+                
+                controlsArea.innerHTML = `
+                    <button onclick="location.reload()" class="w-full md:w-auto bg-green-500 hover:bg-green-600 text-white font-black py-4 px-12 rounded-2xl shadow-[0_8px_0_#16a34a] active:shadow-[0_0px_0_#16a34a] active:translate-y-2 transform transition text-2xl flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-arrow-counter-clockwise"></i> Play Again
+                    </button>
+                `;
+            }
+        }
+
+        // Start the application
+        initApp();
+    </script>
+</body>
+</html>

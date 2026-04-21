@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Face Game!</title>
+    <!-- Tailwind CSS for cute, rapid styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Face-API for facial expression detection -->
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
+    <!-- Canvas Confetti for the success effect -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            margin: 0;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        h1, h2, h3, .emoji-text {
+            font-family: 'Fredoka One', cursive;
+        }
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+        #video-container {
+            position: relative;
+            width: 90vw;
+            max-width: 640px;
+            border-radius: 30px;
+            overflow: hidden;
+            border: 8px solid white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            background: #333;
+        }
+        video {
+            width: 100%;
+            height: auto;
+            transform: scaleX(-1); /* Mirror the webcam */
+            display: block;
+        }
+        .bounce {
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+        .pop {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="screen bg-white bg-opacity-90 z-50">
+        <div class="text-6xl mb-4 bounce">🤖</div>
+        <h1 class="text-3xl text-purple-600 mb-2">Loading AI Magic...</h1>
+        <p class="text-gray-500">Getting the facial recognition ready!</p>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen z-40 hidden backdrop-blur-sm">
+        <h1 class="text-5xl md:text-7xl text-pink-500 mb-6 drop-shadow-md text-center">Face Fun!<br>Emotion Game</h1>
+        <p class="text-xl text-gray-700 mb-8 max-w-md text-center px-4 font-bold">
+            Make the face that matches the Emoji to score points!
+        </p>
+        <button id="start-btn" class="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 text-3xl py-4 px-10 rounded-full font-bold shadow-lg transform transition hover:scale-110">
+            ▶ Play Now!
+        </button>
+        <p class="mt-4 text-sm text-gray-500">(Make sure to allow camera access)</p>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen z-20 hidden pt-16">
+        
+        <!-- HUD: Score & Timer -->
+        <div class="absolute top-4 left-4 md:top-8 md:left-8 bg-white py-2 px-6 rounded-full shadow-md flex gap-6 text-xl md:text-2xl font-bold text-gray-700 border-4 border-pink-200">
+            <div>⭐ Score: <span id="score" class="text-pink-500">0</span></div>
+            <div>⏰ Time: <span id="timer" class="text-blue-500">60</span>s</div>
+        </div>
+
+        <!-- HUD: Target Emotion -->
+        <div id="target-box" class="absolute top-4 right-4 md:top-8 md:right-8 bg-white p-4 rounded-3xl shadow-lg border-4 border-yellow-300 flex flex-col items-center justify-center transform transition duration-300">
+            <div id="target-emoji" class="text-6xl md:text-7xl bounce">😄</div>
+            <div id="target-text" class="emoji-text text-2xl md:text-3xl text-purple-600 mt-2 uppercase tracking-wide">Happy</div>
+        </div>
+
+        <!-- Video Area -->
+        <div id="video-container" class="mt-12 md:mt-0">
+            <video id="webcam" autoplay muted playsinline></video>
+            <!-- Overlay text when correctly detected -->
+            <div id="success-overlay" class="absolute inset-0 bg-green-400 bg-opacity-30 flex items-center justify-center hidden">
+                <span class="text-6xl md:text-8xl font-bold text-white drop-shadow-lg pop">GREAT JOB!</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- End Screen -->
+    <div id="end-screen" class="screen z-30 hidden bg-white bg-opacity-95 backdrop-blur-md">
+        <h1 class="text-6xl text-purple-600 mb-4 bounce">Time's Up!</h1>
+        <div class="text-3xl text-gray-700 mb-8">You scored:</div>
+        <div class="text-8xl font-bold text-pink-500 mb-10 drop-shadow-md">⭐ <span id="final-score">0</span> ⭐</div>
+        <button id="replay-btn" class="bg-green-400 hover:bg-green-300 text-green-900 text-3xl py-4 px-10 rounded-full font-bold shadow-lg transform transition hover:scale-110">
+            ↻ Play Again
+        </button>
+    </div>
+
+    <script>
+        // --- Game Configuration & Variables ---
+        const emotions = [
+            { key: 'happy', emoji: '😄', label: 'Happy' },
+            { key: 'sad', emoji: '😢', label: 'Sad' },
+            { key: 'angry', emoji: '😡', label: 'Angry' },
+            { key: 'surprised', emoji: '😲', label: 'Surprised' },
+            { key: 'fearful', emoji: '😨', label: 'Scared' }
+        ];
+
+        let score = 0;
+        let timeLeft = 60;
+        let timerInterval;
+        let isPlaying = false;
+        let currentTarget = null;
+        let isTransitioning = false; // Prevent multiple triggers for the same emotion
+
+        // --- DOM Elements ---
+        const video = document.getElementById('webcam');
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const loadingScreen = document.getElementById('loading-screen');
+        
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const targetEmojiEl = document.getElementById('target-emoji');
+        const targetTextEl = document.getElementById('target-text');
+        const finalScoreEl = document.getElementById('final-score');
+        const targetBox = document.getElementById('target-box');
+        const successOverlay = document.getElementById('success-overlay');
+
+        // --- Audio Context for 'Ting Ting' Sound ---
+        let audioCtx;
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playTingTing() {
+            if (!audioCtx) return;
+            // Play first ting
+            playOscillator(1000, 0);
+            // Play second higher ting shortly after
+            playOscillator(1300, 0.15);
+        }
+
+        function playOscillator(freq, delay) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            
+            // Envelope to make it sound like a bell/ting
+            gain.gain.setValueAtTime(0, audioCtx.currentTime + delay);
+            gain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + delay + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + delay + 0.5);
+            
+            osc.start(audioCtx.currentTime + delay);
+            osc.stop(audioCtx.currentTime + delay + 0.6);
+        }
+
+        // --- Text to Speech ---
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Stop current speech
+                const msg = new SpeechSynthesisUtterance(text);
+                msg.lang = 'en-US';
+                msg.rate = 1.1; // Slightly faster
+                msg.pitch = 1.4; // Cute, higher pitch
+                window.speechSynthesis.speak(msg);
+            }
+        }
+
+        // --- Face API Initialization ---
+        async function loadModels() {
+            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+            try {
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                    faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
+                ]);
+                // Hide loading, show start
+                loadingScreen.classList.add('hidden');
+                startScreen.classList.remove('hidden');
+            } catch (err) {
+                console.error("Error loading models:", err);
+                loadingScreen.innerHTML = `<h1 class="text-3xl text-red-500">Error loading AI. Please check internet connection.</h1>`;
+            }
+        }
+
+        // --- Camera Setup ---
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, 
+                    audio: false 
+                });
+                video.srcObject = stream;
+                return new Promise((resolve) => {
+                    video.onloadedmetadata = () => resolve();
+                });
+            } catch (err) {
+                alert("Please allow camera access to play the game!");
+                console.error(err);
+                throw err;
+            }
+        }
+
+        function stopCamera() {
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        // --- Game Logic ---
+        function setRandomEmotion() {
+            // Pick a random emotion different from the current one
+            let newTarget;
+            do {
+                newTarget = emotions[Math.floor(Math.random() * emotions.length)];
+            } while (currentTarget && newTarget.key === currentTarget.key);
+            
+            currentTarget = newTarget;
+            
+            // Update UI
+            targetEmojiEl.innerText = currentTarget.emoji;
+            targetTextEl.innerText = currentTarget.label;
+            
+            // Add pop animation to the box
+            targetBox.classList.remove('pop');
+            void targetBox.offsetWidth; // trigger reflow
+            targetBox.classList.add('pop');
+
+            // Speak the instruction
+            speak(`Show me a ${currentTarget.label} face!`);
+        }
+
+        function handleCorrectEmotion() {
+            if (isTransitioning || !isPlaying) return;
+            isTransitioning = true;
+            
+            // 1. Increase Score
+            score++;
+            scoreEl.innerText = score;
+            
+            // 2. Play Sound & Confetti
+            playTingTing();
+            confetti({
+                particleCount: 150,
+                spread: 80,
+                origin: { y: 0.6 },
+                colors: ['#FFC0CB', '#FFD700', '#87CEFA', '#98FB98']
+            });
+
+            // 3. Show Success Overlay
+            successOverlay.classList.remove('hidden');
+
+            // 4. Wait a moment, then set next emotion
+            setTimeout(() => {
+                successOverlay.classList.add('hidden');
+                if (isPlaying) {
+                    setRandomEmotion();
+                    isTransitioning = false;
+                }
+            }, 1500);
+        }
+
+        async function detectFaceLoop() {
+            if (!isPlaying) return;
+
+            if (video.readyState === 4 && !isTransitioning) {
+                // Detect expressions
+                const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceExpressions();
+                
+                if (detections && currentTarget) {
+                    const expressions = detections.expressions;
+                    
+                    // Find the highest confidence expression
+                    let maxConfidence = 0;
+                    let detectedEmotion = '';
+                    for (const [emotion, confidence] of Object.entries(expressions)) {
+                        if (confidence > maxConfidence) {
+                            maxConfidence = confidence;
+                            detectedEmotion = emotion;
+                        }
+                    }
+
+                    // Check if it matches target with reasonable confidence (> 0.6)
+                    if (detectedEmotion === currentTarget.key && maxConfidence > 0.6) {
+                        handleCorrectEmotion();
+                    }
+                }
+            }
+            
+            // Loop using requestAnimationFrame for smooth performance
+            requestAnimationFrame(detectFaceLoop);
+        }
+
+        function startGame() {
+            // Initialize Audio
+            initAudio();
+            
+            // Reset State
+            score = 0;
+            timeLeft = 60;
+            scoreEl.innerText = score;
+            timerEl.innerText = timeLeft;
+            isPlaying = true;
+            isTransitioning = false;
+            
+            startScreen.classList.add('hidden');
+            endScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+
+            startCamera().then(() => {
+                setRandomEmotion();
+                detectFaceLoop();
+                
+                // Start Timer
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    timerEl.innerText = timeLeft;
+                    
+                    // Add urgency color when time is low
+                    if (timeLeft <= 10) {
+                        timerEl.classList.remove('text-blue-500');
+                        timerEl.classList.add('text-red-500', 'bounce');
+                    }
+                    
+                    if (timeLeft <= 0) {
+                        endGame();
+                    }
+                }, 1000);
+            });
+        }
+
+        function endGame() {
+            isPlaying = false;
+            clearInterval(timerInterval);
+            timerEl.classList.remove('text-red-500', 'bounce');
+            timerEl.classList.add('text-blue-500');
+            
+            speak(`Time is up! You scored ${score} points!`);
+            
+            finalScoreEl.innerText = score;
+            gameScreen.classList.add('hidden');
+            endScreen.classList.remove('hidden');
+            
+            stopCamera();
+            
+            // Big confetti explosion for the end screen
+            confetti({
+                particleCount: 300,
+                spread: 120,
+                origin: { y: 0.4 }
+            });
+        }
+
+        // --- Event Listeners ---
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('replay-btn').addEventListener('click', startGame);
+
+        // --- Init ---
+        window.onload = loadModels;
+
+    </script>
+</body>
+</html>
